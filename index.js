@@ -4,7 +4,7 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = requi
 // UBAH NOMOR DI BAWAH INI SESUAI NOMOR WHATSAPP LU
 // Format: Gunakan kode negara tanpa tanda +, misal: 6281234567890
 // ============================================================
-const NOMOR_HP_LU = "628xxxxxxxxxx"; 
+const NOMOR_HP_LU = "6285745490918"; 
 
 async function startBot() {
     // 1. Simpan sesi di folder 'session_wa' agar tidak usah pairing ulang saat server restart
