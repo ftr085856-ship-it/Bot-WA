@@ -1,39 +1,41 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 
 // ============================================================
-// UBAH NOMOR DI BAWAH INI SESUAI NOMOR WHATSAPP LU
-// Format: Gunakan kode negara tanpa tanda +, misal: 6281234567890
+// MASUKKAN NOMOR HP LU DI SINI (Format: 628xxxxxxxxxx)
 // ============================================================
 const NOMOR_HP_LU = "6285745490918"; 
 
 async function startBot() {
-    // 1. Simpan sesi di folder 'session_wa' agar tidak usah pairing ulang saat server restart
     const { state, saveCreds } = await useMultiFileAuthState('session_wa');
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false // Matikan QR Code
+        printQRInTerminal: false
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    // 2. Minta Kode Pairing jika akun belum terhubung
-    if (!sock.authState.creds.registered) {
-        setTimeout(async () => {
-            try {
-                let code = await sock.requestPairingCode(NOMOR_HP_LU);
-                console.log(`\n=================================`);
-                console.log(`👉 KODE PAIRING LU: ${code}`);
-                console.log(`=================================\n`);
-            } catch (err) {
-                console.log("Gagal meminta kode pairing:", err);
-            }
-        }, 4000);
-    }
+    let codeRequested = false;
 
-    // 3. Monitor Status Koneksi Server
-    sock.ev.on('connection.update', (update) => {
+    // Monitor Status Koneksi Server
+    sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
+
+        // Hanya minta kode pairing KALAU socket sudah siap & belum terdaftar
+        if ((connection === 'connecting' || connection === 'open') && !sock.authState.creds.registered && !codeRequested) {
+            codeRequested = true;
+            setTimeout(async () => {
+                try {
+                    let code = await sock.requestPairingCode(NOMOR_HP_LU);
+                    console.log(`\n=================================`);
+                    console.log(`👉 KODE PAIRING BARU LU: ${code}`);
+                    console.log(`=================================\n`);
+                } catch (err) {
+                    console.log("Koneksi belum stabil, bakal nyoba lagi...", err?.message || err);
+                    codeRequested = false; // Reset biar bisa minta ulang kalau gagal
+                }
+            }, 3000);
+        }
 
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
@@ -44,21 +46,18 @@ async function startBot() {
         }
     });
 
-    // 4. Logika Bales Chat di Grup
+    // Logika Bales Chat di Grup
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
-        if (!msg.message || msg.key.fromMe) return;
+        if (!msg.message) return; // Bisa dites pakai akun sendiri
 
         const chatJid = msg.key.remoteJid;
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
 
-        // Hanya merespon jika pesan masuk dari GRUP
         if (chatJid.endsWith('@g.us')) {
-            // Contoh Perintah 1: !gog
             if (text.toLowerCase() === '!gog') {
                 await sock.sendMessage(chatJid, { text: 'Bot Anomaly GOG Siap Melayani Gabutnya Lu Pada! 🗿🥀' });
             }
-            // Contoh Perintah 2: ping
             if (text.toLowerCase() === 'ping') {
                 await sock.sendMessage(chatJid, { text: 'Pong! 🗿🔥' });
             }
@@ -66,5 +65,4 @@ async function startBot() {
     });
 }
 
-// Jalankan Bot
 startBot();
