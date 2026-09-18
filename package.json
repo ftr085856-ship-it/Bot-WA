@@ -1,0 +1,16 @@
+{
+  "name": "admins-whatsapp-bot",
+  "version": "1.1.0",
+  "description": "AdminS WhatsApp group bot using Baileys with pairing code login",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "pino": "^9.4.0"
+  }
+}
